@@ -113,7 +113,44 @@ ElementType Delete_Heap(defheap* heapq){
     heapq->heap[i] = x;
     return tmp;
 }
-
+//6. 返回堆顶元素
+ElementType get_heap(defheap* heapq){
+    if(!heapq->len){
+        printf("The heap is empty\n");
+        exit(1);
+    }
+    return heapq->heap[0];
+}
+//交换函数
+void swap(int *a, int *b){
+    int tmp = *b;
+    *b = *a;
+    *a = *b;
+    return;
+}
+//7. heapify
+void heapify(defheap* heapq, int i){
+    /*如果大于堆的长度,返回*/
+    if(i >= heapq->len){
+        return;
+    }
+    int l, r, maxnode;
+    l = 2*i + 1;//左节点下标(初始值为1)
+    r = 2*i + 2;//右节点下标(初始值为2)
+    maxnode = i;//父节点下标(最大值,初始值为0)
+    /*如果左节点在堆范围内,且左节点大于最大值,交换下标*/
+    if (l < heapq->len && heapq->heap[l] > heapq->heap[maxnode]){
+        maxnode = l;
+    }
+    if (r < heapq->len && heapq->heap[r] > heapq->heap[maxnode]){
+        maxnode = r;
+    }
+    /*如果发生了下标交换,则交换它们的值, 并递归地进行下一次heapify*/
+    if (maxnode != i){
+        swap(&heapq->heap[maxnode], &heapq->heap[i]);
+        heapify(heapq, maxnode);
+    }
+}
 int main(void)
 {
     clock_t c0 = clock();
