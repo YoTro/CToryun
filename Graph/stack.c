@@ -2,6 +2,7 @@
 
 int  main(void)
 {
+    
     stack *s;
     int n = 6;
     InitStack(s);
@@ -10,9 +11,9 @@ int  main(void)
     }
     printStack(s);
     for (int i = 0; i < n-1; i++){
-        pop(s);
+        int v = pop(s);
+        printf("%d\n", v);
     }
-    printStack(s);
     printf("%d\n", s->len);
     free(s->base);
     return 0;
