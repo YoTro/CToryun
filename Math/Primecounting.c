@@ -67,20 +67,22 @@ void printList(float *result0, int size){
 }
 int main(void){
 	//unsigned long long int的最大值为 18,446,744,073,709,551,615
-	unsigned long long int n = pow(10, 8);
+	int a = 10;
+	int b = 9;
+	unsigned long long int n = pow(a, b);
 	clock_t start0 = clock();
 	unsigned long long int m = Prime(n);
 	clock_t end0 = clock();
 	double t0 = (double)(end0 - start0)/CLOCKS_PER_SEC;
 	printf("Total numbers of prime: %llu\nThe counting used time is %5fs\n", m, t0);
 	pthread_t th1, th2;
-	result = (float*)malloc(9*sizeof(float));
+	result = (float*)malloc(b*sizeof(float));
 	Primerate();
 	primeargs args1, args2;
 	args1.first = 0;
 	args1.last = 5;
 	args2.first = 5;
-	args2.last = 10;
+	args2.last = b+1;
 	clock_t start1 = clock();
 	pthread_create(&th1, NULL, multithreadPrime, &args1);
 	pthread_create(&th2, NULL, multithreadPrime, &args2);
@@ -89,7 +91,7 @@ int main(void){
 	pthread_join(th2, NULL);
 	clock_t end1 = clock();
 	double t1 = (double)(end1 - start1)/CLOCKS_PER_SEC;
-	printList(result, 9);
+	printList(result, b);
 	printf("The multithread prime counting used time is %5fs\n", t1);
 	free(result);
 	result = NULL;
