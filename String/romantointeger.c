@@ -119,6 +119,24 @@ char * intToRoman(int num){
     }
     return s;
 }
+
+char * HardcoredintToRoman(int num){
+    char *s = (char *)malloc(4 * sizeof(char));
+    memset(s, 0, 4 * sizeof(char));
+
+    int i = 0;
+    char *thousands[] = {"", "M", "MM", "MMM"};
+    char *hundreds[] = {"", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"};
+    char *tens[] = {"", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"};
+    char *ones[] = {"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"};
+    strcat(s, thousands[num / 1000]);
+    strcat(s, hundreds[num%1000/100]);
+    strcat(s, tens[num%100/10]);
+    strcat(s, ones[num%10]);        
+    printf("%s\n", s);
+    return s;
+}
+
 int  main(void)
 {
 	char s[] = {"MCMXCIV"};
