@@ -51,102 +51,6 @@ void print_matrix(matrix m)
     printf("__|\n");
 }
 
-/*
-int count_fields(char *line)
-{
-    int count = 0;
-    int done = 0;
-    char *c;
-    for(c = line; !done; ++c){
-        done = (*c == '\0');
-        if(*c == ',' || done) ++count;
-    }
-    return count;
-}
-void malloc_error()
-{
-    fprintf(stderr, "Malloc error\n");
-    exit(-1);
-}
-float *parse_fields(char *line, int n)
-{
-    float *field = calloc(n, sizeof(float));
-    char *c, *p, *end;
-    int count = 0;
-    int done = 0;
-    for(c = line, p = line; !done; ++c){
-        done = (*c == '\0');
-        if(*c == ',' || done){
-            *c = '\0';
-            field[count] = strtod(p, &end);
-            if(p == c) field[count] = nan("");
-            if(end != c && (end != c-1 || *end != '\r')) field[count] = nan(""); //DOS file formats!
-            p = c+1;
-            ++count;
-        }
-    }
-    return field;
-}
-char *fgetl(FILE *fp)
-{
-    if(feof(fp)) return 0;
-    size_t size = 512;
-    char *line = malloc(size*sizeof(char));
-    if(!fgets(line, size, fp)){
-        free(line);
-        return 0;
-    }
-
-    size_t curr = strlen(line);
-
-    while((line[curr-1] != '\n') && !feof(fp)){
-        if(curr == size-1){
-            size *= 2;
-            line = realloc(line, size*sizeof(char));
-            if(!line) {
-                printf("%ld\n", size);
-                malloc_error();
-            }
-        }
-        size_t readsize = size-curr;
-        if(readsize > INT_MAX) readsize = INT_MAX-1;
-        fgets(&line[curr], readsize, fp);
-        curr = strlen(line);
-    }
-    if(line[curr-1] == '\n') line[curr-1] = '\0';
-
-    return line;
-}*/
-matrix csv_to_matrix(char *filename)
-{
-    FILE *fp = fopen(filename, "r");
-    if(!fp){
-        fprintf(stderr, "Couldn't open file: %s\n", filename);
-        exit(0);
-    }
-
-    matrix m;
-    m.cols = -1;
-
-    char *line;
-
-    int n = 0;
-    int size = 1024;
-    m.vals = calloc(size, sizeof(float*));
-    while((line = fgetl(fp))){
-        if(m.cols == -1) m.cols = count_fields(line);
-        if(n == size){
-            size *= 2;
-            m.vals = realloc(m.vals, size*sizeof(float*));
-        }
-        m.vals[n] = parse_fields(line, m.cols);
-        free(line);
-        ++n;
-    }
-    m.vals = realloc(m.vals, n*sizeof(float*));
-    m.rows = n;
-    return m;
-}
 /*把矩阵展开成一维*/
 matrix flatten_matrix(matrix m){
     matrix t = make_matrix(1, m.cols*m.rows);
@@ -190,4 +94,151 @@ matrix transpose_matrix(matrix m){
     m=t;
     return m;
 }
+/*矩阵的迹*/
+int trace_matrix(matrix m){
+    assert(m.cols>0 && m.rows>0 && m.rows == m.cols);
+    int i,j=0;
+    int ans=0;
+    while(i==m.rows){
+        ans += m.vals[i++][j++];
+    }
+    return ans;
+}
+/* 标量x矩阵 scale*m */
+void scale_matrix(matrix m, float scale)
+{
+    int i,j;
+    for(i = 0; i < m.rows; ++i){
+        for(j = 0; j < m.cols; ++j){
+            m.vals[i][j] *= scale;
+        }
+    }
+}
+/*矩阵相加*/
+void matrix_add_matrix(matrix from, matrix to)
+{
+    assert(from.rows == to.rows && from.cols == to.cols);
+    int i,j;
+    for(i = 0; i < from.rows; ++i){
+        for(j = 0; j < from.cols; ++j){
+            to.vals[i][j] += from.vals[i][j];
+        }
+    }
+}
+/*矩阵的代数余因子式*/
+matrix submatrix(matrix m, int index_i, int index_j){
+    assert(m.cols >1 && m.rows>1 && index_j <m.cols && index_i < m.rows && index_i >=0 && index_j >=0);
+    matrix fl_m = make_matrix(1, (m.rows-1)*(m.cols-1));
+    int l=0;
+    for(int i=0;i<m.rows;i++){
+        for (int j = 0; j < m.cols; j++)
+        {
+            if(i!=index_i && j!=index_j){
+                fl_m.vals[0][l++]=m.vals[i][j];
+            }
+        }
+        
+    }
+    l=0;
+    matrix sub_m = make_matrix(m.rows-1, m.cols-1);
+    for(int i=0;i<m.rows-1;i++){
+        for (int j = 0; j < m.cols-1; j++)
+        {
+            sub_m.vals[i][j]=fl_m.vals[0][l++];
+        }
+        
+    }
+    free_matrix(fl_m);
+    return sub_m;
+}
 
+/*矩阵的行列式*/
+
+float det_matrix(matrix m){
+    int det=0;
+    assert(m.cols==m.rows);
+    if(m.rows==1) return m.vals[0][0];
+    if(m.rows == 2) return (m.vals[0][0]*m.vals[1][1] - m.vals[0][1]*m.vals[1][0]);
+    for(int j=0;j<m.cols;j++){
+        det+=m.vals[0][j]*det_matrix(submatrix(m, 0, j))*pow(-1,j);
+    }
+
+    return det;
+}
+/*伴随矩阵*/
+matrix adjugate_matrix(matrix m){
+    matrix adj_m = make_matrix(m.rows, m.cols);
+    for(int i=0;i<m.rows;i++){
+        for(int j=0;j<m.cols;j++){
+            adj_m.vals[j][i]=pow(-1, i+j)*det_matrix(submatrix(m, i,j));
+        }
+    }
+    return adj_m;
+}
+/*单位向量*/
+matrix identity_matrix(int n){
+    assert(n>0);
+    matrix I_n = make_matrix(n,n);
+    int i,j=0;
+    while(i==n){
+        I_n.vals[i++][j++]=1;
+    }
+    return I_n;
+}
+/*矩阵的点乘*/
+matrix dot_matrix(matrix m, matrix n){
+    assert(m.cols == n.rows);
+    matrix dot_mn = make_matrix(m.rows, n.cols);
+    for(int i=0;i<m.rows;i++){
+        for(int j=0;j<n.cols;j++){
+            for (int k = 0; k < m.cols; ++k)
+            {
+                dot_mn.vals[i][j]+=m.vals[i][k]*n.vals[k][j];
+            }
+        }
+    }
+    return dot_mn;
+}
+/*逆矩阵*/
+matrix inverse_matrix(matrix m){
+    matrix inv_m = adjugate_matrix(m);
+    
+    float scale = 1/det_matrix(m);
+    for(int i = 0; i < m.rows; ++i){
+        for(int j = 0; j < m.cols; ++j){
+            inv_m.vals[i][j] *= scale;
+        }
+    }
+    return inv_m;
+}
+/*导入csv到矩阵*/
+matrix csv_to_matrix(char *filename)
+{
+    FILE *fp = fopen(filename, "r");
+    if(!fp){
+        fprintf(stderr, "Couldn't open file: %s\n", filename);
+        exit(0);
+    }
+
+    matrix m;
+    m.cols = -1;
+
+    char *line;
+
+    int n = 0;
+    int size = 1024;
+    m.vals = calloc(size, sizeof(float*));
+    while((line = fgetl(fp))){
+        if(m.cols == -1) m.cols = count_fields(line);
+        if(n == size){
+            size *= 2;
+            m.vals = realloc(m.vals, size*sizeof(float*));
+        }
+        m.vals[n] = parse_fields(line, m.cols);
+        free(line);
+        ++n;
+    }
+    m.vals = realloc(m.vals, n*sizeof(float*));
+    m.rows = n;
+    return m;
+}
