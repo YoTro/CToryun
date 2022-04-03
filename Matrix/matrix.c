@@ -97,9 +97,9 @@ matrix transpose_matrix(matrix m){
 /*矩阵的迹*/
 int trace_matrix(matrix m){
     assert(m.cols>0 && m.rows>0 && m.rows == m.cols);
-    int i,j=0;
+    int i=0,j=0;
     int ans=0;
-    while(i==m.rows){
+    while(i!=m.rows){
         ans += m.vals[i++][j++];
     }
     return ans;
@@ -179,8 +179,8 @@ matrix adjugate_matrix(matrix m){
 matrix identity_matrix(int n){
     assert(n>0);
     matrix I_n = make_matrix(n,n);
-    int i,j=0;
-    while(i==n){
+    int i=0,j=0;
+    while(i!=n){
         I_n.vals[i++][j++]=1;
     }
     return I_n;
