@@ -6,7 +6,7 @@
 #include "utils.h"
 #include <math.h>
 #include <unistd.h>
-#define INT_MAX 2147483647
+
 
 int count_fields(char *line)
 {
