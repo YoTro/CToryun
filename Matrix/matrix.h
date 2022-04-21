@@ -19,6 +19,7 @@ matrix matrix_add_matrix(matrix from, matrix to);
 matrix submatrix(matrix m, int index_i, int index_j);
 float det_matrix(matrix m);
 int trace_matrix(matrix m);
+int rank_matrix(matrix m);
 matrix scale_matrix(matrix m, float scale);
 matrix adjugate_matrix(matrix m);
 matrix identity_matrix(int n);
@@ -28,7 +29,9 @@ matrix outer_matrix(matrix a, matrix b);
 matrix random_matrix(int rows, int cols);
 float norm_matrix(matrix m, int ord);
 matrix solve_matrix(matrix m, matrix b);
-matrix *Eigen_matrix(matrix m);
+matrix *Eigen_Jacobi_matrix(matrix m);
+matrix *Eigen_iter_matrix(matrix m);
 matrix sign(matrix m);
 matrix *QR_decomposition_matrix(matrix A);
+matrix *svd_matrix(matrix A);
 #endif

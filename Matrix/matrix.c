@@ -49,7 +49,8 @@ void print_matrix(matrix m)
         printf(" |\n");
     }
     printf("|__");
-    for(j = 0; j < 16*m.cols-1; ++j) printf(" ");
+    for(j = 0; j < 16*m.cols-1; ++j)
+        printf(" ");
     printf("__|\n");
 }
 
@@ -84,7 +85,7 @@ matrix reshape_matrix(matrix m, int new_rows, int new_cols)
 }
 /*转置矩阵*/
 matrix transpose_matrix(matrix m){
-
+    assert(m.rows > 0 && m.cols > 0);
     matrix t = make_matrix(m.cols, m.rows);
     for(int i=0;i<m.cols;i++){
         for(int j=0;j<m.rows;j++){
@@ -194,9 +195,9 @@ matrix dot_matrix(matrix m, matrix n){
     matrix dot_mn = make_matrix(m.rows, n.cols);
     for(int i=0;i<m.rows;i++){
         for(int j=0;j<n.cols;j++){
-            for (int k = 0; k < m.cols; ++k)
+            for (int k = 0; k < m.cols; k++)
             {
-                dot_mn.vals[i][j]+=m.vals[i][k]*n.vals[k][j];
+                dot_mn.vals[i][j] += m.vals[i][k] * n.vals[k][j];
             }
         }
     }
@@ -230,6 +231,91 @@ matrix inverse_matrix(matrix m){
     }
     return inv_m;
 }
+/* 矩阵的秩 */
+int rank_matrix(matrix m)
+{
+    assert(m.cols>0);
+    int rank = m.cols;
+ 
+    for (int i = 0; i < rank; i++)
+    {
+        // Before we visit current row 'row', we make
+        // sure that mat[row][0],....mat[row][row-1]
+        // are 0.
+ 
+        // 对角线元素不为零
+        if (m.vals[i][i])
+        {
+           for (int j = 0; j < m.rows; j++)
+           {
+               if (j != i)
+               {
+                 // This makes all entries of current
+                 // column as 0 except entry 'mat[i][i]'
+                 float mult = m.vals[j][i] /
+                                       m.vals[i][i];
+                 for (int k = 0; k < rank; k++)
+                   m.vals[j][k] -= mult * m.vals[i][k];
+              }
+           }
+        }
+ 
+        // Diagonal element is already zero. Two cases
+        // arise:
+        // 1) If there is a row below it with non-zero
+        //    entry, then swap this row with that row
+        //    and process that row
+        // 2) If all elements in current column below
+        //    mat[r][row] are 0, then remove this column
+        //    by swapping it with last column and
+        //    reducing number of columns by 1.
+        else
+        {
+            int reduce = 1;
+ 
+            /* 查找当前列非零元素  */
+            for (int k = i + 1; k < m.rows;  k++)
+            {
+                // Swap the row with non-zero element
+                // with this row.
+                if (m.vals[k][i])
+                {
+                    for (int r = 0; r < rank; r++)
+                    {
+                        int temp = m.vals[i][r];
+                        m.vals[i][r] = m.vals[k][r];
+                        m.vals[k][r] = temp;
+                    }
+                    reduce = 0;
+                    break ;
+                }
+            }
+ 
+            // If we did not find any row with non-zero
+            // element in current column, then all
+            // values in this column are 0.
+            if (reduce)
+            {
+                // Reduce number of columns
+                rank--;
+ 
+                // Copy the last column here
+                for (int k = 0; k < m.rows; k ++)
+                    m.vals[k][i] = m.vals[k][rank];
+            }
+ 
+            // Process this row again
+            i--;
+        }
+ 
+       // Uncomment these lines to see intermediate results
+       //print_matrix(m);
+       //printf("\n");
+    }
+    return rank;
+}
+
+/*生成随机矩阵*/
 matrix random_matrix(int rows, int cols){
     assert(rows>0 && cols>0);
     srand((unsigned)time(NULL));
@@ -273,9 +359,93 @@ matrix copy_matrix(matrix m){
     }
     return m_copy;
 }
+/*QR分解: Q为正交矩阵, R为上三角矩阵*/
+matrix *QR_decomposition_matrix(matrix A){
+    /*
+    return (Q, R) Q为正交矩阵, R为上三角矩阵
 
+    householder反射法
+      H = I − 2*v*v^T
+        = I - 2(uu^T)/(u^Tu)
+        = I - beta*W*W^T
+    其中 
+      x = A[i:,i] 矩阵的下三角列
+      u = x − s||x||e1
+      v = u/||u||
+      W = u/u1
+      beta = −sign*u1/||x||
+      sign = 1  when x1>=0;
+      sign = -1 when x1<0;
+    reference: https://www.cs.cornell.edu/~bindel/class/cs6210-f09/lec18.pdf
+    */
+    assert(A.rows > 1 && A.cols > 1 && A.rows >= A.cols /*&& det_matrix(A) != 0*/);
+
+    matrix *qr = (matrix *)malloc(sizeof(matrix)*2);
+    matrix Q = identity_matrix(A.rows);
+    matrix R = copy_matrix(A);
+    for(int j = 0; j < A.cols-1; j++){
+        //取下三角列x = A[i:,i]
+        matrix x = make_matrix( A.rows - j, 1 );
+        for (int i = 0; i < A.rows - j; ++i)
+        {
+            x.vals[i][0] = R.vals[i+j][j];
+        }
+        //计算||x||
+        float norm_x = norm_matrix(x, 2);
+        //计算sign
+        float alpha = 1;
+        if (x.vals[0][0] >= 0)
+        {
+             alpha = -1;
+        }
+        if (x.vals[0][0] < 0)
+        {
+            alpha = 1;
+        }
+
+        float u1 = x.vals[0][0] - alpha * norm_x;
+        
+        if (u1 == 0)
+        {
+            continue;
+        }
+        matrix u = scale_matrix(x, 1/u1);
+        u.vals[0][0] = 1;
+        float beta = -alpha*u1/norm_x;
+        matrix outer = outer_matrix(u,u);
+        matrix old_R = copy_matrix(R);
+        for(int i=0;i<outer.rows;i++){
+            for(int c=0;c<R.cols;c++){
+                for (int k = 0; k < outer.cols; k++)
+                {
+                    R.vals[i+j][c] -=  beta*outer.vals[i][k]*old_R.vals[k+j][c];
+                }
+                
+            }
+        }
+        matrix old_Q = copy_matrix(Q);
+        for (int i = 0; i < Q.rows; ++i)
+        {
+            for (int c = 0; c < outer.cols; ++c)
+            {
+                for (int k = 0; k < outer.cols; ++k)
+                {
+                    Q.vals[i][c+j] -= beta*old_Q.vals[i][k+j]*outer.vals[k][c];
+                }
+            }
+        }
+        free_matrix(old_R);
+        free_matrix(old_Q);
+        free_matrix(outer);
+        free_matrix(x);
+        free_matrix(u);
+    }
+    qr[0] = Q;
+    qr[1] = R;
+    return qr;
+}
 /*矩阵的特征值和特征向量*/
-matrix *Eigen_matrix(matrix m){
+matrix *Eigen_Jacobi_matrix(matrix m){
     //检测是否为对称矩阵
     for (int i = 0; i < m.rows; ++i)
     {
@@ -291,6 +461,7 @@ matrix *Eigen_matrix(matrix m){
             }
         }
     }
+    assert(m.rows > 0 && m.cols > 0 && m.rows == m.cols);
     matrix *Eigenvalues_vector = (matrix *)malloc(sizeof(matrix)*2);
     //Jacobi eigenvalue algorithm
     //Step1. 初始化特征值矩阵D 和 单位矩阵 S
@@ -363,10 +534,46 @@ matrix *Eigen_matrix(matrix m){
             break;
         }
     }
-    Eigenvalues_vector[0] = D;
+    matrix lambda = make_matrix(1, D.cols);
+    for (int i = 0; i < D.cols; ++i)
+    {
+        lambda.vals[0][i] = D.vals[i][i];
+    }
+    free_matrix(D);
+    Eigenvalues_vector[0] = lambda;
     Eigenvalues_vector[1] = S;
     return Eigenvalues_vector;
 }
+/*计算矩阵特征值和特征向量, 先化为上hessenberg矩阵然后在givens反射qr分解*/
+matrix *Eigen_iter_matrix(matrix m){
+    assert(m.rows > 0 && m.cols > 0 && m.rows == m.cols);
+    matrix *Eigenvalues_vector = (matrix *)malloc(sizeof(matrix)*2);
+    matrix A = copy_matrix(m);
+    matrix U = identity_matrix(A.rows);
+    float error = 0.000001;
+    int flag = 0;
+
+    while(flag == 0)
+    {
+        float a_old = A.vals[0][0];
+        matrix *QR = QR_decomposition_matrix(A);
+        A = dot_matrix( QR[1], QR[0] ); //A_i = R_i * Q_i
+        U = dot_matrix( U, QR[0] ); //U_i = U_i-1 * Q_i
+        if (A.vals[0][0] - a_old <= error)
+        {
+            flag = 1;
+        }
+    }
+    matrix lambda = make_matrix(1, A.cols);
+    for (int i = 0; i < A.cols; ++i)
+    {
+        lambda.vals[0][i] = A.vals[i][i];
+    }
+    free_matrix(A);
+    Eigenvalues_vector[0] = lambda;
+    Eigenvalues_vector[1] = U;
+    return Eigenvalues_vector;
+}    
 /*sign返回矩阵元素正负号*/
 matrix sign(matrix m){
     matrix sign_m = make_matrix(m.rows, m.cols);
@@ -388,86 +595,32 @@ matrix sign(matrix m){
     }
     return sign_m;
 }
-/*QR分解: Q为正交矩阵, R为上三角矩阵*/
-matrix *QR_decomposition_matrix(matrix A){
+
+/*奇异分解*/
     /*
-    return (Q, R) Q为正交矩阵, R为上三角矩阵
-
-    householder反射法
-      H = I − 2*v*v^T
-        = I - 2(uu^T)/(u^Tu)
-        = I - beta*W*W^T
-    其中 
-      x = A[i:,i] 矩阵的下三角列
-      u = x − s||x||e1
-      v = u/||u||
-      W = u/u1
-      beta = −sign*u1/||x||
-      sign = 1  when x1>=0;
-      sign = -1 when x1<0;
-
+    A^{T}·A = (UΣV^{T})^{T} · (UΣV^{T})=(VΣU^{T})(UΣV^{T})=VΣ^2V^T
+    A·A^{T} = (UΣV^{T}) · (UΣV^{T})^{T}=(UΣV^{T})(VΣU^{T})=UΣ^2U^T
     */
-    assert(A.rows > 2 && A.cols > 2);
-    matrix *qr = (matrix*)malloc(sizeof(matrix)*2);
-    matrix Q = identity_matrix(A.rows);
-    matrix R = copy_matrix(A);
-    for(int j = 0; j < A.cols-1; j++){
-        matrix x = make_matrix( A.rows - j, 1 );
-        for (int i = 0; i < A.rows - j; ++i)
-        {
-            x.vals[i][0] = R.vals[i+j][j];
-        }
-        float norm_x = norm_matrix(x, 2);
-        float alpha = 0;
-        if (x.vals[0][0] >= 0)
-        {
-             alpha = -1;
-        }
-        if (x.vals[0][0] < 0)
-        {
-            alpha = 1;
-        }
+matrix *svd_matrix(matrix A){
 
-        float u1 = x.vals[0][0] - alpha * norm_x;
-        
-        if (u1 == 0)
-        {
-            continue;
-        }
-        matrix u = scale_matrix(x, 1/u1);
-        u.vals[0][0] = 1;
-        float beta = -alpha*u1/norm_x;
-        matrix outer = outer_matrix(u,u);
-        matrix old_R = copy_matrix(R);
-        for(int i=0;i<outer.rows;i++){
-            for(int c=0;c<R.cols;c++){
-                for (int k = 0; k < outer.cols; k++)
-                {
-                    R.vals[i+j][c] -=  beta*outer.vals[i][k]*old_R.vals[k+j][c];
-                }
-                
-            }
-        }
-        matrix old_Q = copy_matrix(Q);
-        for (int i = 0; i < Q.rows; ++i)
-        {
-            for (int c = 0; c < outer.cols; ++c)
-            {
-                for (int k = 0; k < outer.cols; ++k)
-                {
-                    Q.vals[i][c+j] -= beta*old_Q.vals[i][k+j]*outer.vals[k][c];
-                }
-            }
-        }
-        free_matrix(old_R);
-        free_matrix(old_Q);
-        free_matrix(outer);
-        free_matrix(x);
-        free_matrix(u);
+    assert(A.rows > 0 && A.cols > 0);
+
+    matrix *svd = (matrix *)malloc(sizeof(matrix)*3);   
+    matrix *qr_ATA = Eigen_iter_matrix(dot_matrix(transpose_matrix(A), A));
+    matrix *qr_AAT = Eigen_iter_matrix(dot_matrix(A, transpose_matrix(A)));
+    matrix lambda = qr_AAT[0];
+    matrix V = qr_ATA[1];
+    matrix U = qr_AAT[1];
+    matrix S = make_matrix(A.rows, A.cols);
+    for (int i = 0; i < A.cols; ++i)
+    {
+        S.vals[i][i] = sqrtf(lambda.vals[0][i]);
     }
-    qr[0] = Q;
-    qr[1] = R;
-    return qr;
+    svd[0] = U;
+    svd[1] = S;
+    svd[2] = transpose_matrix(V); 
+    
+    return svd;
 }
 /*导入csv到矩阵*/
 matrix csv_to_matrix(char *filename)

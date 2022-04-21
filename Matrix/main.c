@@ -9,12 +9,17 @@ int main()
 	matrix m = csv_to_matrix(f);
 	//matrix b = csv_to_matrix(f1);
 	print_matrix(m);
-	//print_matrix(b);
-	matrix *qr = QR_decomposition_matrix(m);
-	print_matrix(qr[0]);
-	print_matrix(qr[1]);
-    free_matrix(qr[0]);
-    free_matrix(qr[1]);	
-	free(qr);
+	print_matrix(dot_matrix( m, transpose_matrix(m)));
+	printf("%d\n",rank_matrix(m));
+	matrix *svd = svd_matrix(m);
+	print_matrix(svd[0]);
+	print_matrix(svd[1]);
+	print_matrix(svd[2]);
+	free_matrix(svd[0]);
+	free_matrix(svd[1]);
+	free_matrix(svd[2]);
+	free(svd);
+	//free_matrix(s);
+	free_matrix(m);
 	return 0;
 }
