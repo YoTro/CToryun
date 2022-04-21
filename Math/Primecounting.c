@@ -5,6 +5,7 @@
 #include <math.h>
 #include <time.h>
 #include <pthread.h>
+#include <limits.h>
 
 typedef struct{
 	int first;
@@ -12,6 +13,28 @@ typedef struct{
 }primeargs;
 
 float *result;
+
+double li(unsigned long long int x){
+	if (x == 1)
+	{
+		printf("li(x) is inf, x doesn't equal to 1!\n");
+		return INT_MAX;
+	}
+	double y = 1;
+	unsigned long long int order_k = 1, k = 1;
+	double error = INT_MAX;
+	while(error >= 0.00000001){
+		order_k *= k;
+		double y_old = y;
+		y += order_k/pow(log(x), k);
+		printf("y = %.8f y_old = %.8f\n",y, y_old);
+		error = fabs(y - y_old);
+		k++;	
+	}
+	y *= x/log(x);
+	return y;
+}
+
 unsigned long long int Prime(unsigned long long int n){
 	if (n < 2){
 		return 0;
@@ -71,7 +94,7 @@ int main(void){
 	int b = 9;
 	unsigned long long int n = pow(a, b);
 	clock_t start0 = clock();
-	unsigned long long int m = Prime(n);
+	//unsigned long long int m = Prime(n);
 	clock_t end0 = clock();
 	double t0 = (double)(end0 - start0)/CLOCKS_PER_SEC;
 	printf("Total numbers of prime: %llu\nThe counting used time is %5fs\n", m, t0);
