@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <limits.h>
 #include "utils.h"
 typedef float ElemType;
 
@@ -18,6 +20,7 @@ typedef struct {
 }Cross_list;
 Cross_list csv_to_olist(char *filepath);
 Cross_list create_olist(Cross_list M);
+Cross_list copy_olist(Cross_list M);
 int find_olnode(Cross_list M, OLNode *p);
 void delete_olnode(Cross_list M, OLNode *p);
 int update_olnode(Cross_list M, OLNode *p, ElemType value);

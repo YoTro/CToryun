@@ -40,6 +40,10 @@ Cross_list csv_to_olist(char *filepath){
 		free(line);
 		n++;
 	}
+	if (M.cols == -1 || n == 0){
+		printf("The matrix is invaild\n");
+		exit(0);
+	}
 	mat = realloc(mat, n * sizeof(ElemType*));
 	M.rows = n;
 	for (int i = 0; i < M.rows; ++i){
@@ -230,7 +234,7 @@ int find_olnode(Cross_list M, OLNode *p){
 void delete_olnode(Cross_list M, OLNode *p){
 	if (p->r > M.rows || p->c > M.cols || !M.rhead[p->r])
 	{
-		printf("The node (%d, %d) %f is not in the matrix\n", p->r, p->c, p->value);
+		printf("Delete failed!\nThe node (%d, %d) %f is not in the matrix\n", p->r, p->c, p->value);
 		return;
 	}
 	OLNode *q = M.rhead[p->r];
@@ -242,7 +246,7 @@ void delete_olnode(Cross_list M, OLNode *p){
 	}
 	if (q->c != p->c || p->value != q->value)
 	{
-		printf("The node (%d, %d) %f is not in the matrix\n", p->r, p->c, p->value);
+		printf("Delete failed!\nThe node (%d, %d) %f is not in the matrix\n", p->r, p->c, p->value);
 		return;
 	}
 
@@ -264,9 +268,6 @@ void delete_olnode(Cross_list M, OLNode *p){
 	{
 		M.chead[p->c] = g->down;
 	}
-	free(q);
-	q = NULL;
-	g = NULL;	
 	
 	M.len--;
 	return;
@@ -274,7 +275,7 @@ void delete_olnode(Cross_list M, OLNode *p){
 int update_olnode(Cross_list M, OLNode *p, ElemType value){
 	if (p->r > M.rows || p->c > M.cols || !M.rhead[p->r])
 	{
-		printf("The node (%d, %d) %f is not in the matrix\n", p->r, p->c, p->value);
+		printf("Update failed\nThe node (%d, %d) %f is not in the matrix\n", p->r, p->c, p->value);
 		return 0;
 	}
 	OLNode *q = M.rhead[p->r];
@@ -284,7 +285,7 @@ int update_olnode(Cross_list M, OLNode *p, ElemType value){
 	}
 	if (q->c != p->c || p->value != q->value)
 	{
-		printf("The node (%d, %d) %f is not in the matrix\n", p->r, p->c, p->value);
+		printf("Update failed\nThe node (%d, %d) %f is not in the matrix\n", p->r, p->c, p->value);
 		return 0;
 	}
 	q->value = value;
@@ -292,9 +293,9 @@ int update_olnode(Cross_list M, OLNode *p, ElemType value){
 }
 void insert_olist(Cross_list M, OLNode *p){
 
-	if (p->r > M.rows || p->c > M.cols)
+	if (p->r > M.rows || p->c > M.cols || M.len == M.rows * M.cols)
 	{
-		printf("The node (%d, %d) %f is not in the matrix\n", p->r, p->c, p->value);
+		printf("Insert failed\nThe node (%d, %d) %f is overstepping matrix boundaries\n", p->r, p->c, p->value);
 		return;
 	}
 	if (M.rhead[p->r] == NULL || M.rhead[p->r]->c > p->c){
@@ -307,13 +308,13 @@ void insert_olist(Cross_list M, OLNode *p){
 		}
 		if (q->right && q->right->c == p->c)
 		{
-			printf("%d %d %f This node is not None, please insertq new element\n", q->right->r, q->right->c, q->right->value);
+			printf("Insert failed\n%d %d %f This node is not None, please insert new element\n", q->right->r, q->right->c, q->right->value);
 			return;
 		}		
 		
 		if (q->c == p->c)
 		{
-			printf("%d %d %f This node is not None, please insert new element\n", q->r, q->c, q->value);
+			printf("Insert failed\n%d %d %f This node is not None, please insert new element\n", q->r, q->c, q->value);
 			return;
 		}
 		p->right = q->right;
@@ -331,17 +332,58 @@ void insert_olist(Cross_list M, OLNode *p){
 		}
 		if (g->down && g->down->r == p->r)
 		{
-			printf("%d %d %f This node is not None, please insertg new element\n", g->down->r, g->down->c, g->down->value);
+			printf("Insert failed\n%d %d %f This node is not None, please insert new element\n", g->down->r, g->down->c, g->down->value);
 			return;
 		}		
 		if (g->r == p->r)
 		{
-			printf("%d %d %f This node is not None, please insert_ new element\n", g->r, g->c, g->value);
+			printf("Insert failed\n%d %d %f This node is not None, please insert new element\n", g->r, g->c, g->value);
 			return;
 		}
 		p->down = g->down;
 		g->down = p;
 	}
+}
+Cross_list copy_olist(Cross_list M){
+	if (M.cols < 1 || M.rows < 1 || M.len < 0)
+	{
+		printf("The matrix is invaild!\n");
+		exit(0);
+	}
+	Cross_list new_M;
+	new_M.rows = M.rows;
+	new_M.cols = M.cols;
+	new_M.len = M.len;
+	OLNode *p;
+	if (!(new_M.rhead = (OList *)malloc((new_M.rows+1)*sizeof(OList))) || !(new_M.chead = (OList *)malloc((new_M.cols+1)*sizeof(OList))))
+	{
+		printf("Malloc error\n");
+		exit(0);
+	}
+	for (int i = 1; i <= new_M.rows; ++i)
+	{
+		new_M.rhead[i] = NULL;
+	}
+	for (int i = 1; i <= new_M.cols; ++i)
+	{
+		new_M.chead[i] = NULL;
+	}
+	for (int i = 1; i <= new_M.rows; ++i){
+		OLNode *q = M.rhead[i];
+		while (q){
+			if (!(p = (OLNode *)malloc(sizeof(OLNode))))
+			{
+				printf("Initialize cell failed\n");
+				exit(0);
+			}
+			p->r = q->r;
+			p->c = q->c;
+			p->value = q->value;
+			insert_olist(new_M, p);
+			q = q->right;
+		}
+	}
+	return new_M;
 }
 void free_olist(Cross_list M){
 	int i = 1, j = 1;
